@@ -43,7 +43,7 @@ def custom_pipeline(data, examples):
     return classifier.predict(example_counts)
 
 def cross_validate(data):
-    k_fold = KFold(n=len(data), n_folds=12)
+    k_fold = KFold(n=len(data), n_folds=6)
     scores = []
     confusion = np.array([[0, 0], [0, 0]])
 
