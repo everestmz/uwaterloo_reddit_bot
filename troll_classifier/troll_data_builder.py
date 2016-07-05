@@ -1,5 +1,7 @@
 import praw, os, json
 import helpers
+from helpers import add_to_data, flip
+from troll_classifier import use_pipeline, combine_full_data
 
 def print_comment_thread(child, r):
     parent = r.get_info(thing_id=child.parent_id)
@@ -44,6 +46,29 @@ def cherry_pick_thread(reddit):
     helpers.write_to_data_file("threads.json", json.dumps({"threads": threads}))
     helpers.write_to_data_file("troll_training_data.json", json.dumps({"comments": comment_classifications}))
 
+def new_comment_loop(reddit):
+    for c in praw.helpers.comment_stream(reddit, 'uwaterloo', limit=100):
+        data = combine_full_data()
+
+        print "-----------------------------"
+
+        result = use_pipeline(data, [c.body])
+
+        print_comment_thread(c, reddit)
+        print c.body
+
+        if result[0] == 1:
+            print "Troll"
+        else:
+            print "Not Troll"
+
+        print "Correct?"
+        add = raw_input("[y/n] > ")
+
+        if add == "y":
+            add_to_data(c.body, int(result[0]))
+        else:
+            add_to_data(c.body, flip(int(result[0])))
 
 def get_hot_post_comments(reddit, count):
     hot_submissions = reddit.get_subreddit('uwaterloo').get_hot(limit=count)
@@ -84,7 +109,8 @@ def get_hot_post_comments(reddit, count):
 def main():
     reddit = login_to_reddit()
     #cherry_pick_thread(reddit)
-    get_hot_post_comments(reddit, 20)
+    #get_hot_post_comments(reddit, 20)
+    new_comment_loop(reddit)
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,14 @@
 import json
-from helpers import load_json_into_array
+from helpers import load_json_into_array, add_to_data, flip
 from pandas import DataFrame
 import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import KFold
 from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.naive_bayes import BernoulliNB
 
 def build_data_frame(rows):
     indexes = []
@@ -29,7 +31,10 @@ def build_classifier(data_frame, counts):
 def use_pipeline(data, examples):
     pipeline = Pipeline([
         ('vectorizer', CountVectorizer()),
-        ('classifier', MultinomialNB())])
+        ('tfidf_transformer',  TfidfTransformer()),
+        ('classifier', BernoulliNB(binarize=0.3))
+        #('classifier', MultinomialNB())
+        ])
     pipeline.fit(data['text'].values, data['class'].values)
     return pipeline.predict(examples)
 
@@ -66,14 +71,44 @@ def cross_validate(data):
 
     return {"scores": scores, "confusion": confusion}
 
+def classify():
+    randomly_permuted_frame = combine_full_data()
+
+    print "Type your phrase"
+    phrase = raw_input("> ")
+
+    result = use_pipeline(randomly_permuted_frame, [phrase])
+
+    if result[0] == 1:
+        print "Troll"
+    else:
+        print "Not Troll"
+
+    print "Correct?"
+    add = raw_input("[y/n] > ")
+
+    if add == "y":
+        add_to_data(phrase, int(result[0]))
+    else:
+        add_to_data(phrase, flip(int(result[0])))
+
 def main():
-    examples = ['DISRUPTIVE', "You're a fgt", "I'm gay", "It's all fun and games until someone is"]
+    examples = [
+        'DISRUPTIVE', 
+        "You're a fgt", 
+        "I'm gay", 
+        "It's all fun and games until someone is", 
+        "dank memes br0", 
+        "It's just a frantic karma grab after the first panino variation was posted.",
+        "HERE COME DAT BOI O SHIT WADDUP",
+        "im sorry",
+        "Hey I'm gonna go do some homework"
+    ]
     randomly_permuted_frame = combine_full_data()
 
     print use_pipeline(randomly_permuted_frame, examples)
     testing = cross_validate(randomly_permuted_frame)
 
-    print testing['scores']
     print sum(testing['scores'])/len(testing['scores'])
     print testing['confusion']
 
