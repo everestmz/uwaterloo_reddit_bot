@@ -1,7 +1,6 @@
-import praw, os, json
-import helpers
-from helpers import add_to_data, flip
-from troll_classifier import use_pipeline, combine_full_data
+import praw, os
+from helpers import flip
+from classifier import use_pipeline, combine_full_data
 
 def print_comment_thread(child, r):
     parent = r.get_info(thing_id=child.parent_id)
@@ -16,18 +15,19 @@ def login_to_reddit():
     reddit.login('uw_reddit_bot', os.environ['UWATERLOO_REDDIT_KEY'], disable_warning=True)
     return reddit
 
-def cherry_pick_thread(reddit):
+def cherry_pick_thread(threads):
+    reddit = login_to_reddit()
+    threads_to_add = []
+    comment_classifications = []
+
     print "Link to thread"
     link = raw_input("> ")
     thread = reddit.get_submission(link)
 
-    threads = helpers.load_json_into_array("threads.json")['threads']
-    comment_classifications = helpers.load_json_into_array("troll_training_data.json")['comments']
-
     if thread.id in threads:
         exit(0)
-    else:
-        threads.append(thread.id)
+    elif thread.id not in threads_to_add:
+        threads_to_add.append(thread.id)
 
     for comment in praw.helpers.flatten_tree(thread.comments):
         if not hasattr(comment, 'body'):
@@ -43,12 +43,20 @@ def cherry_pick_thread(reddit):
         elif result == "finish":
             break
 
-    helpers.write_to_data_file("threads.json", json.dumps({"threads": threads}))
-    helpers.write_to_data_file("troll_training_data.json", json.dumps({"comments": comment_classifications}))
+    return {"threads": threads_to_add, "data": comment_classifications}
 
-def new_comment_loop(reddit):
-    for c in praw.helpers.comment_stream(reddit, 'uwaterloo', limit=100):
-        data = combine_full_data()
+def new_comment_loop(count, threads, rows):
+    reddit = login_to_reddit()
+    comment_classifications = []
+    threads_to_add = []
+
+    for c in praw.helpers.comment_stream(reddit, 'uwaterloo', limit=count):
+        if c.submission.id in threads:
+            continue
+        elif c.submission.id not in threads_to_add:
+            threads_to_add.append(c.submission.id)
+
+        data = combine_full_data(rows)
 
         print "-----------------------------"
 
@@ -66,15 +74,18 @@ def new_comment_loop(reddit):
         add = raw_input("[y/n] > ")
 
         if add == "y":
-            add_to_data(c.body, int(result[0]))
+            comment_classifications.append({"comment": c.body, "class": int(result[0])})
         else:
-            add_to_data(c.body, flip(int(result[0])))
+            comment_classifications.append({"comment": c.body, "class": flip(int(result[0]))})
 
-def get_hot_post_comments(reddit, count):
+    return {"threads": threads_to_add, "data": comment_classifications}
+
+def get_hot_post_comments(count, threads):
+    reddit = login_to_reddit()
+    comment_classifications = []
     hot_submissions = reddit.get_subreddit('uwaterloo').get_hot(limit=count)
 
-    threads = helpers.load_json_into_array("threads.json")['threads']
-    comment_classifications = helpers.load_json_into_array("troll_training_data.json")['comments']
+    threads_to_add = []
 
     for post in hot_submissions:
 
@@ -86,7 +97,8 @@ def get_hot_post_comments(reddit, count):
         if result == "y":
             break
 
-        threads.append(post.id)
+        if post.id not in threads_to_add:
+            threads_to_add.append(post.id)
 
         for comment in praw.helpers.flatten_tree(post.comments):
 
@@ -103,14 +115,4 @@ def get_hot_post_comments(reddit, count):
             elif result == "finish":
                 break
 
-    helpers.write_to_data_file("threads.json", json.dumps({"threads": threads}))
-    helpers.write_to_data_file("troll_training_data.json", json.dumps({"comments": comment_classifications}))
-
-def main():
-    reddit = login_to_reddit()
-    #cherry_pick_thread(reddit)
-    #get_hot_post_comments(reddit, 20)
-    new_comment_loop(reddit)
-
-if __name__ == "__main__":
-    main()
+    return {"threads": threads_to_add, "data": comment_classifications}

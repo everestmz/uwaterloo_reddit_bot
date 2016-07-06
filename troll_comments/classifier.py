@@ -1,6 +1,5 @@
-import json
-from helpers import load_json_into_array, add_to_data, flip
 from pandas import DataFrame
+from helpers import flip
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer
 from sklearn.naive_bayes import MultinomialNB
@@ -18,15 +17,9 @@ def build_data_frame(rows):
     data_frame = DataFrame(rows, index=indexes)
     return data_frame
 
-def combine_full_data():
-    rows = load_json_into_array("troll_training_data.json")['comments']
+def combine_full_data(rows):
     data_frame = build_data_frame(rows)
     return data_frame.reindex(np.random.permutation(data_frame.index))
-
-def build_classifier(data_frame, counts):
-    classifier = MultinomialNB()
-    targets = data_frame['class'].values
-    return classifier.fit(counts, targets)
 
 def use_pipeline(data, examples):
     pipeline = Pipeline([
@@ -37,15 +30,6 @@ def use_pipeline(data, examples):
         ])
     pipeline.fit(data['text'].values, data['class'].values)
     return pipeline.predict(examples)
-
-def custom_pipeline(data, examples):
-    count_vectorizer = CountVectorizer()
-    vectorized_counts = count_vectorizer.fit_transform(data['text'].values)
-
-    classifier = build_classifier(data, vectorized_counts)
-
-    example_counts = count_vectorizer.transform(examples)
-    return classifier.predict(example_counts)
 
 def cross_validate(data):
     k_fold = KFold(n=len(data), n_folds=6)
@@ -71,26 +55,41 @@ def cross_validate(data):
 
     return {"scores": scores, "confusion": confusion}
 
-def classify():
-    randomly_permuted_frame = combine_full_data()
+def classify_cmdline():
+    comment_classifications = []
 
-    print "Type your phrase"
-    phrase = raw_input("> ")
+    while True:
+        randomly_permuted_frame = combine_full_data()
 
-    result = use_pipeline(randomly_permuted_frame, [phrase])
+        print "Type your phrase"
+        phrase = raw_input("> ")
 
-    if result[0] == 1:
-        print "Troll"
-    else:
-        print "Not Troll"
+        result = use_pipeline(randomly_permuted_frame, [phrase])
 
-    print "Correct?"
-    add = raw_input("[y/n] > ")
+        if result[0] == 1:
+            print "Troll"
+        else:
+            print "Not Troll"
 
-    if add == "y":
-        add_to_data(phrase, int(result[0]))
-    else:
-        add_to_data(phrase, flip(int(result[0])))
+        print "Correct?"
+        add = raw_input("[y/n] > ")
+
+        if add == "y":
+            comment_classifications.append({phrase, int(result[0])})
+        elif add == "exit":
+            break
+        else:
+            comment_classifications.append({phrase, flip(int(result[0]))})
+
+    return {"threads": [], "data": comment_classifications}
+
+def print_metrics(data):
+    frame = combine_full_data(data)
+
+    testing = cross_validate(frame)
+
+    print sum(testing['scores']) / len(testing['scores'])
+    print testing['confusion']
 
 def main():
     examples = [
@@ -107,10 +106,6 @@ def main():
     randomly_permuted_frame = combine_full_data()
 
     print use_pipeline(randomly_permuted_frame, examples)
-    testing = cross_validate(randomly_permuted_frame)
-
-    print sum(testing['scores'])/len(testing['scores'])
-    print testing['confusion']
 
 if __name__ == "__main__":
     main()
