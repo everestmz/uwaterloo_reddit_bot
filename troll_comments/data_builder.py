@@ -1,6 +1,6 @@
 import praw, os
 from helpers import flip
-from classifier import use_pipeline, combine_full_data
+from classifier import use_pipeline, combine_full_data, use_pipeline_prob
 
 def print_comment_thread(child, r):
     parent = r.get_info(thing_id=child.parent_id)
@@ -25,7 +25,7 @@ def cherry_pick_thread(threads):
     thread = reddit.get_submission(link)
 
     if thread.id in threads:
-        exit(0)
+        return {"threads": [], "data": []}
     elif thread.id not in threads_to_add:
         threads_to_add.append(thread.id)
 
@@ -56,11 +56,10 @@ def new_comment_loop(count, threads, rows):
         elif c.submission.id not in threads_to_add:
             threads_to_add.append(c.submission.id)
 
-        data = combine_full_data(rows)
-
         print "-----------------------------"
 
-        result = use_pipeline(data, [c.body])
+        result = use_pipeline(combine_full_data(rows), 'multinomial', [c.body])
+        prob = use_pipeline_prob(combine_full_data(rows), 'multinomial', [c.body])
 
         print_comment_thread(c, reddit)
         print c.body
@@ -70,13 +69,18 @@ def new_comment_loop(count, threads, rows):
         else:
             print "Not Troll"
 
+        print "--Probability:"
+        print prob
+
         print "Correct?"
-        add = raw_input("[y/n] > ")
+        add = raw_input("[y/n/x] > ")
 
         if add == "y":
-            comment_classifications.append({"comment": c.body, "class": int(result[0])})
+            comment_classifications.append({"text": c.body, "class": int(result[0])})
+        elif add == "x":
+            break
         else:
-            comment_classifications.append({"comment": c.body, "class": flip(int(result[0]))})
+            comment_classifications.append({"text": c.body, "class": flip(int(result[0]))})
 
     return {"threads": threads_to_add, "data": comment_classifications}
 

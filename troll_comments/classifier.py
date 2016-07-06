@@ -1,13 +1,10 @@
 from pandas import DataFrame
 from helpers import flip
 import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import KFold
 from sklearn.metrics import confusion_matrix, f1_score
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.naive_bayes import BernoulliNB
+from pipelines import gen_pipeline, TYPES as pipeline_types
+import pipelines
 
 def build_data_frame(rows):
     indexes = []
@@ -19,20 +16,19 @@ def build_data_frame(rows):
 
 def combine_full_data(rows):
     data_frame = build_data_frame(rows)
-    return data_frame.reindex(np.random.permutation(data_frame.index))
+    data_frame.reindex(np.random.permutation(data_frame.index))
+    return data_frame
 
-def use_pipeline(data, examples):
-    pipeline = Pipeline([
-        ('vectorizer', CountVectorizer()),
-        ('tfidf_transformer',  TfidfTransformer()),
-        ('classifier', BernoulliNB(binarize=0.3))
-        #('classifier', MultinomialNB())
-        ])
-    pipeline.fit(data['text'].values, data['class'].values)
+def use_pipeline_prob(data, type, examples):
+    pipeline = gen_pipeline(data, type)
+    return pipeline.predict_proba(examples)
+
+def use_pipeline(data, type, examples):
+    pipeline = gen_pipeline(data, type)
     return pipeline.predict(examples)
 
-def cross_validate(data):
-    k_fold = KFold(n=len(data), n_folds=6)
+def cross_validate(data, type):
+    k_fold = KFold(n=len(data), n_folds=3)
     scores = []
     confusion = np.array([[0, 0], [0, 0]])
 
@@ -43,9 +39,7 @@ def cross_validate(data):
         test_text = data.iloc[test_indices]['text'].values
         test_y = data.iloc[test_indices]['class'].values
 
-        pipeline = Pipeline([
-            ('vectorizer', CountVectorizer()),
-            ('classifier', MultinomialNB())])
+        pipeline = gen_pipeline(data, type)
         pipeline.fit(train_text, train_y)
         predictions = pipeline.predict(test_text)
 
@@ -55,16 +49,16 @@ def cross_validate(data):
 
     return {"scores": scores, "confusion": confusion}
 
-def classify_cmdline():
+def classify_cmdline(data):
     comment_classifications = []
 
     while True:
-        randomly_permuted_frame = combine_full_data()
+        randomly_permuted_frame = combine_full_data(data)
 
         print "Type your phrase"
         phrase = raw_input("> ")
 
-        result = use_pipeline(randomly_permuted_frame, [phrase])
+        result = use_pipeline(randomly_permuted_frame, 'bernoulli', [phrase])
 
         if result[0] == 1:
             print "Troll"
@@ -72,24 +66,28 @@ def classify_cmdline():
             print "Not Troll"
 
         print "Correct?"
-        add = raw_input("[y/n] > ")
+        add = raw_input("[y/n/exit] > ")
 
         if add == "y":
-            comment_classifications.append({phrase, int(result[0])})
+            comment_classifications.append({"text": phrase, "class": int(result[0])})
         elif add == "exit":
             break
         else:
-            comment_classifications.append({phrase, flip(int(result[0]))})
+            comment_classifications.append({"text": phrase, "class": flip(int(result[0]))})
 
     return {"threads": [], "data": comment_classifications}
 
 def print_metrics(data):
     frame = combine_full_data(data)
 
-    testing = cross_validate(frame)
+    for type in pipeline_types:
+        print type
 
-    print sum(testing['scores']) / len(testing['scores'])
-    print testing['confusion']
+        testing = cross_validate(frame, type)
+
+        print sum(testing['scores']) / len(testing['scores'])
+        print testing['confusion']
+        print "---------------------------"
 
 def main():
     examples = [
@@ -105,7 +103,7 @@ def main():
     ]
     randomly_permuted_frame = combine_full_data()
 
-    print use_pipeline(randomly_permuted_frame, examples)
+    print use_pipeline(randomly_permuted_frame, 'multinomial', examples)
 
 if __name__ == "__main__":
     main()
