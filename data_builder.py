@@ -1,4 +1,5 @@
 from tools.helpers import bulk_add_to_data, load_json_into_array
+from tools.s3 import update_json
 from troll_comments import data_builder as troll_builder
 from troll_comments import classifier as troll_classifier
 
@@ -35,8 +36,8 @@ def build_troll_comment_data():
             continue
 
         if final_data != {}:
-            bulk_add_to_data("troll_comments/troll_training_data.json", 'comments', final_data["data"])
-            bulk_add_to_data("troll_comments/threads.json", 'threads', final_data["threads"])
+            update_json('troll', 'comments', final_data["data"])
+            update_json('troll', 'threads', final_data["threads"])
 
 def main():
     build_troll_comment_data()
