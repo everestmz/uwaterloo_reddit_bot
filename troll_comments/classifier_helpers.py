@@ -1,10 +1,8 @@
 from pandas import DataFrame
-from helpers import flip
 import numpy as np
 from sklearn.cross_validation import KFold
 from sklearn.metrics import confusion_matrix, f1_score
-from pipelines import gen_pipeline, TYPES as pipeline_types
-import pipelines
+from tools.pipelines import gen_pipeline
 
 def build_data_frame(rows):
     indexes = []
@@ -48,43 +46,3 @@ def cross_validate(data, type):
         scores.append(score)
 
     return {"scores": scores, "confusion": confusion}
-
-def classify_cmdline(data):
-    comment_classifications = []
-
-    while True:
-        randomly_permuted_frame = combine_full_data(data)
-
-        print "Type your phrase"
-        phrase = raw_input("> ")
-
-        result = use_pipeline(randomly_permuted_frame, 'bernoulli', [phrase])
-
-        if result[0] == 1:
-            print "Troll"
-        else:
-            print "Not Troll"
-
-        print "Correct?"
-        add = raw_input("[y/n/exit] > ")
-
-        if add == "y":
-            comment_classifications.append({"text": phrase, "class": int(result[0])})
-        elif add == "exit":
-            break
-        else:
-            comment_classifications.append({"text": phrase, "class": flip(int(result[0]))})
-
-    return {"threads": [], "data": comment_classifications}
-
-def print_metrics(data):
-    frame = combine_full_data(data)
-
-    for type in pipeline_types:
-        print type
-
-        testing = cross_validate(frame, type)
-
-        print sum(testing['scores']) / len(testing['scores'])
-        print testing['confusion']
-        print "---------------------------"

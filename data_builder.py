@@ -1,6 +1,5 @@
 from tools.s3 import update_json, get_data
 from troll_comments import data_builder as troll_builder
-from troll_comments import classifier_helpers as classification_helpers
 from troll_comments import classifier as troll_classifier
 from comment_scores.data_builder import generate
 
@@ -40,9 +39,9 @@ def build_troll_comment_data():
         elif selection[0] == 3:
             final_data = troll_builder.cherry_pick_thread(threads)
         elif selection[0] == 4:
-            final_data = classification_helpers.classify_cmdline(data)
+            final_data = troll_classifier.classify_cmdline(data)
         elif selection[0] == 5:
-            classification_helpers.print_metrics(data)
+            troll_classifier.print_metrics(data)
         elif selection[0] == 6:
             print troll_classifier.trolliness(data, selection[1])
         else:
