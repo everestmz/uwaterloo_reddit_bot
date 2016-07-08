@@ -1,5 +1,5 @@
 import praw, os
-from tools.helpers import flip
+from tools.helpers import flip, login_to_reddit
 from classifier_helpers import use_pipeline, combine_full_data, cross_validate
 from tools.pipelines import TYPES as pipeline_types
 
@@ -10,11 +10,6 @@ def print_comment_thread(child, r):
         print "----------------------------NEXT-----------------------------"
         if not parent.is_root:
             print_comment_thread(parent, r)
-
-def login_to_reddit():
-    reddit = praw.Reddit(user_agent='uw_reddit_ai')
-    reddit.login('uw_reddit_bot', os.environ['UWATERLOO_REDDIT_KEY'], disable_warning=True)
-    return reddit
 
 def cherry_pick_thread(threads):
     reddit = login_to_reddit()

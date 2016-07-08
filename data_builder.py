@@ -1,16 +1,32 @@
 from tools.s3 import update_json, get_data
 from troll_comments import data_builder as troll_builder
 from troll_comments import classifier as troll_classifier
-from comment_scores.data_builder import generate
+from comment_scores.data_builder import generate, cherry_pick_thread
 
-def build_comment_score_data(count):
+def build_comment_score_data():
     threads = get_data('score', 'threads')
 
-    result = generate(count, threads)
+    while True:
+        print "0) Exit"
+        print "1) Comment stream [count]"
+        print "2) Cherry Pick Thread [thread]"
+        response = raw_input("> ").split(' ')
+        response[0] = int(response[0])
 
-    if result != {"threads": [], "data": []}:
-        update_json('score', 'comments', result['data'])
-        update_json('score', 'threads', result['threads'])
+        result = {"threads": [], "data": []}
+
+        if response[0] == 0:
+            break
+        elif response[0] == 1:
+            result = generate(int(response[1]), threads)
+        elif response[0] == 2:
+            result = cherry_pick_thread(response[1], threads)
+
+        if result != {"threads": [], "data": []}:
+            print "Yay data"
+            update_json('score', 'comments', result['data'])
+            update_json('score', 'threads', result['threads'])
+
 
 def build_troll_comment_data():
     data = get_data('troll', 'comments')
@@ -31,7 +47,7 @@ def build_troll_comment_data():
         final_data = {}
 
         if selection[0] == 0:
-            exit(0)
+            break
         elif selection[0] == 1:
            final_data = troll_builder.new_comment_loop(int(selection)[1], threads, data)
         elif selection[0] == 2:
@@ -53,8 +69,17 @@ def build_troll_comment_data():
 
 def main():
     while True:
-        build_comment_score_data(200)
+        print "0) Exit"
+        print "1) Troll Comments"
+        print "2) Comment Scores"
+        selection = int(raw_input("> "))
 
+        if selection == 0:
+            exit(0)
+        elif selection == 1:
+            build_troll_comment_data()
+        elif selection == 2:
+            build_comment_score_data()
 
 if __name__ == "__main__":
     main()

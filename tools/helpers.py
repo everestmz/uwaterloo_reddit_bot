@@ -1,4 +1,9 @@
-import json
+import json, praw, os
+
+def login_to_reddit():
+    reddit = praw.Reddit(user_agent='uw_reddit_ai')
+    reddit.login('uw_reddit_bot', os.environ['UWATERLOO_REDDIT_KEY'], disable_warning=True)
+    return reddit
 
 def flip(x):
 	if x == 1:

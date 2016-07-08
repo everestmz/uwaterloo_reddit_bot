@@ -1,9 +1,24 @@
-import praw, os
+from tools.helpers import login_to_reddit, praw
 
-def login_to_reddit():
-    reddit = praw.Reddit(user_agent='uw_reddit_ai')
-    reddit.login('uw_reddit_bot', os.environ['UWATERLOO_REDDIT_KEY'], disable_warning=True)
-    return reddit
+def cherry_pick_thread(link, threads):
+    r = login_to_reddit()
+    comment_classifications = []
+    threads_to_add = []
+
+    thread = r.get_submission(link)
+
+    if thread.id in threads:
+        return {"threads": [], "data": []}
+    elif thread.id not in threads_to_add:
+        threads_to_add.append(thread.id)
+
+    for c in praw.helpers.flatten_tree(thread.comments):
+        if not hasattr(c, 'body'):
+            continue
+
+        comment_classifications.append({"text": c.body, "class": c.score})
+
+    return {"threads": threads_to_add, "data": comment_classifications}
 
 def generate(count, threads):
     reddit = login_to_reddit()
