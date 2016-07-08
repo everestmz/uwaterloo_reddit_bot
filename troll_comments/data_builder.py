@@ -1,4 +1,4 @@
-import praw, os
+import praw
 from tools.helpers import flip, login_to_reddit
 from classifier_helpers import use_pipeline, combine_full_data, cross_validate
 from tools.pipelines import TYPES as pipeline_types
