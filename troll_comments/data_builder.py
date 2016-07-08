@@ -1,6 +1,6 @@
 import praw, os
 from helpers import flip
-from classifier import use_pipeline, combine_full_data, use_pipeline_prob
+from classifier_helpers import use_pipeline, combine_full_data, use_pipeline_prob
 
 def print_comment_thread(child, r):
     parent = r.get_info(thing_id=child.parent_id)
@@ -58,8 +58,7 @@ def new_comment_loop(count, threads, rows):
 
         print "-----------------------------"
 
-        result = use_pipeline(combine_full_data(rows), 'multinomial', [c.body])
-        prob = use_pipeline_prob(combine_full_data(rows), 'multinomial', [c.body])
+        result = use_pipeline(combine_full_data(rows), 'bernoulli', [c.body])
 
         print_comment_thread(c, reddit)
         print c.body
@@ -68,9 +67,6 @@ def new_comment_loop(count, threads, rows):
             print "Troll"
         else:
             print "Not Troll"
-
-        print "--Probability:"
-        print prob
 
         print "Correct?"
         add = raw_input("[y/n/x] > ")

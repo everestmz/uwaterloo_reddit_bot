@@ -1,17 +1,17 @@
 import boto3, os, json, helpers
 
 DEFAULT_TEMP_FILENAME = "temp.json"
-S3_BUCKETS = {'troll': 'uw-bot-troll-classification' }
+S3_BUCKETS = {'troll': 'uw-bot-troll-classification', 'score': 'uw-bot-score-prediction'}
 S3_FILENAMES = {'comments': 'comments/data.json', 'threads': 'threads/data.json'}
 
 def login():
     return boto3.resource('s3')
 
 def file_trans(key):
-    S3_FILENAMES[key]
+    return S3_FILENAMES[key]
 
 def bucket_trans(key):
-    S3_BUCKETS[key]
+    return S3_BUCKETS[key]
 
 def fetch_file_from_bucket(bucket, remote_name, local_name):
     s3 = login()
@@ -35,7 +35,7 @@ def update_json(bucket, key, new_data):
     fetch_file_from_bucket(remote_bucket, remote_filename, DEFAULT_TEMP_FILENAME)
     old_data = helpers.load_json_into_array(DEFAULT_TEMP_FILENAME)[key]
     old_data += new_data
-    helpers.write_to_data_file(DEFAULT_TEMP_FILENAME, json.dump({key: old_data}))
+    helpers.write_to_data_file(DEFAULT_TEMP_FILENAME, json.dumps({key: old_data}))
     upload_file_to_bucket(remote_bucket, DEFAULT_TEMP_FILENAME, remote_filename)
 
 def get_data(bucket, key):
