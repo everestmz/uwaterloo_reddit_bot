@@ -1,16 +1,8 @@
-from pandas import DataFrame
 import numpy as np
 from sklearn.cross_validation import KFold
 from sklearn.metrics import confusion_matrix, f1_score
-from tools.pipelines import gen_pipeline
-
-def build_data_frame(rows):
-    indexes = []
-    for index, item in enumerate(rows):
-        indexes.append(index)
-
-    data_frame = DataFrame(rows, index=indexes)
-    return data_frame
+from tools.pipelines import gen_pipeline, TYPES as pipeline_types
+from tools.helpers import build_data_frame
 
 def combine_full_data(rows):
     data_frame = build_data_frame(rows)
@@ -46,3 +38,15 @@ def cross_validate(data, type):
         scores.append(score)
 
     return {"scores": scores, "confusion": confusion}
+
+def print_metrics(data, pipelines=pipeline_types):
+    frame = combine_full_data(data)
+
+    for type in pipelines:
+        print type
+
+        testing = cross_validate(frame, type)
+
+        print sum(testing['scores']) / len(testing['scores'])
+        print testing['confusion']
+        print "---------------------------"

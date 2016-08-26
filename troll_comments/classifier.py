@@ -1,6 +1,8 @@
-from classifier_helpers import *
-from data_builder import login_to_reddit
 import praw
+
+from data_builder import login_to_reddit
+from tools.classifier_helpers import *
+
 
 def is_troll_comment(training_data, text):
     frame = combine_full_data(training_data)

@@ -1,9 +1,21 @@
 import json, praw, os
+from pandas import DataFrame
+
+def how_many_comments(data):
+    return len(data)
 
 def login_to_reddit():
     reddit = praw.Reddit(user_agent='uw_reddit_ai')
     reddit.login('uw_reddit_bot', os.environ['UWATERLOO_REDDIT_KEY'], disable_warning=True)
     return reddit
+
+def build_data_frame(rows):
+    indexes = []
+    for index, item in enumerate(rows):
+        indexes.append(index)
+
+    data_frame = DataFrame(rows, index=indexes)
+    return data_frame
 
 def flip(x):
 	if x == 1:

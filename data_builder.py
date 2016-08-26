@@ -1,15 +1,23 @@
 from tools.s3 import update_json, get_data
+from tools.helpers import how_many_comments
+from tools.classifier_helpers import print_metrics
 from troll_comments import data_builder as troll_builder
 from troll_comments import classifier as troll_classifier
-from comment_scores.data_builder import generate, cherry_pick_thread
+from comment_scores.data_builder import generate, cherry_pick_thread, hot_post_stream
+from comment_scores.classifier import determine_comment_score
 
 def build_comment_score_data():
     threads = get_data('score', 'threads')
+    comments = get_data('score', 'comments')
 
     while True:
         print "0) Exit"
         print "1) Comment stream [count]"
         print "2) Cherry Pick Thread [thread]"
+        print "3) Guess Comment"
+        print "4) How many Comments"
+        print "5) Get top threads [count]"
+        print "6) Metrics"
         response = raw_input("> ").split(' ')
         response[0] = int(response[0])
 
@@ -21,9 +29,19 @@ def build_comment_score_data():
             result = generate(int(response[1]), threads)
         elif response[0] == 2:
             result = cherry_pick_thread(response[1], threads)
+        elif response[0] == 3:
+            comment = raw_input("Type the comment > ")
+            print determine_comment_score(comments, comment)
+        elif response[0] == 4:
+            print how_many_comments(comments)
+        elif response[0] == 5:
+            result = hot_post_stream(threads, int(response[1]))
+        elif response[0] == 6:
+            print_metrics(comments, ['bernoulli'])
+        else:
+            continue
 
         if result != {"threads": [], "data": []}:
-            print "Yay data"
             update_json('score', 'comments', result['data'])
             update_json('score', 'threads', result['threads'])
 
@@ -40,6 +58,8 @@ def build_troll_comment_data():
         print "4) Test a phrase"
         print "5) Metrics"
         print "6) Test thread trolliness [thread]"
+        print "7) How many Comments"
+
 
         selection = raw_input("> ").split(' ')
         selection[0] = int(selection[0])
@@ -57,9 +77,11 @@ def build_troll_comment_data():
         elif selection[0] == 4:
             final_data = troll_classifier.classify_cmdline(data)
         elif selection[0] == 5:
-            troll_classifier.print_metrics(data)
+            print_metrics(data)
         elif selection[0] == 6:
             print troll_classifier.trolliness(data, selection[1])
+        elif selection[0] == 7:
+            print how_many_comments(data)
         else:
             continue
 

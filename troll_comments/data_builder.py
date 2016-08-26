@@ -1,7 +1,9 @@
 import praw
+
+from tools.classifier_helpers import use_pipeline, combine_full_data, cross_validate
 from tools.helpers import flip, login_to_reddit
-from classifier_helpers import use_pipeline, combine_full_data, cross_validate
 from tools.pipelines import TYPES as pipeline_types
+
 
 def print_comment_thread(child, r):
     parent = r.get_info(thing_id=child.parent_id)
@@ -140,15 +142,3 @@ def classify_cmdline(data):
             comment_classifications.append({"text": phrase, "class": flip(int(result[0]))})
 
     return {"threads": [], "data": comment_classifications}
-
-def print_metrics(data):
-    frame = combine_full_data(data)
-
-    for type in pipeline_types:
-        print type
-
-        testing = cross_validate(frame, type)
-
-        print sum(testing['scores']) / len(testing['scores'])
-        print testing['confusion']
-        print "---------------------------"
